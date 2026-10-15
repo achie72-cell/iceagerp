@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zaandam YT Radio - Fixed</title>
+<style>
+#zaandam-yt-player {
+  position: fixed; bottom: 20px; right: 20px; z-index: 99999;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+#zaandam-yt-player .player-card {
+  width: 320px;
+  background: rgba(15,15,15,0.94);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+#zaandam-yt-player .player-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+}
+#zaandam-yt-player .player-title {
+  font-size: 11px; letter-spacing: 1.2px; font-weight: 800; color: #ff2a2a;
+  display: flex; align-items: center; gap: 6px;
+}
+#zaandam-yt-player .player-title .dot {
+  width: 7px; height: 7px; background: #ff2a2a; border-radius: 50%; box-shadow: 0 0 8px #ff2a2a;
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+#zaandam-yt-player .minimize-btn {
+  background: rgba(255,255,255,0.08); border: none; width: 28px; height: 28px;
+  border-radius: 8px; color: white; cursor: pointer; font-size: 12px;
+}
+#zaandam-yt-player .yt-thumb-wrap {
+  position: relative; width: 100%; aspect-ratio: 16/9;
+  border-radius: 14px; overflow: hidden; background: #111;
+  cursor: pointer; margin-bottom: 12px;
+}
+#zaandam-yt-player .yt-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
+#zaandam-yt-player .play-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.35);
+  display: flex; align-items: center; justify-content: center;
+}
+#zaandam-yt-player .big-play {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: rgba(255,255,255,0.92); color: black;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 900; transition: transform 0.15s;
+}
+#zaandam-yt-player .yt-thumb-wrap:hover .big-play { transform: scale(1.08); }
+#zaandam-yt-player .track-info { margin-bottom: 10px; }
+#zaandam-yt-player .track-name { font-size: 13px; font-weight: 700; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#zaandam-yt-player .track-artist { font-size: 11px; color: rgba(255,255,255,0.55); }
+#zaandam-yt-player .controls {
+  display: flex; gap: 8px; align-items: center; margin-bottom: 10px;
+}
+#zaandam-yt-player .ctrl-btn {
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.08);
+  width: 36px; height: 36px; border-radius: 10px; color: white;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+#zaandam-yt-player .ctrl-btn.play { background: white; color: black; width: 42px; height: 42px; font-weight: 900; }
+#zaandam-yt-player .progress-wrap { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+#zaandam-yt-player .time { font-size: 10px; color: rgba(255,255,255,0.5); min-width: 28px; }
+#zaandam-yt-player input[type=range] { flex: 1; accent-color: #ff2a2a; height: 3px; cursor: pointer; }
+#zaandam-yt-player .playlist { margin-top: 12px; display: flex; flex-direction: column; gap: 5px; max-height: 180px; overflow-y:auto; }
+#zaandam-yt-player .playlist-item {
+  display: flex; gap: 10px; align-items: center;
+  padding: 8px 10px; border-radius: 10px;
+  cursor: pointer; transition: all 0.15s;
+  color: rgba(255,255,255,0.6);
+}
+#zaandam-yt-player .playlist-item:hover { background: rgba(255,255,255,0.07); color: white; }
+#zaandam-yt-player .playlist-item.active { background: rgba(255,0,0,0.15); color: white; border: 1px solid rgba(255,0,0,0.25); }
+#zaandam-yt-player .playlist-item img { width: 42px; height: 28px; border-radius: 6px; object-fit: cover; }
+#zaandam-yt-player .playlist-item .pi-title { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+#zaandam-yt-player .playlist-item .pi-artist { font-size: 10px; opacity: 0.6; }
+#zaandam-yt-player .add-yt { margin-top: 12px; display: flex; gap: 6px; }
+#zaandam-yt-player .add-yt input {
+  flex:1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px; padding: 8px 12px; color: white; font-size: 11px; outline: none;
+}
+#zaandam-yt-player .add-yt button {
+  background: #ff0000; border: none; border-radius: 10px; padding: 0 14px; color: white; font-weight: 700; font-size: 11px; cursor: pointer;
+}
+#zaandam-yt-player.minimized .player-card > *:not(.player-header) { display: none !important; }
+#zaandam-yt-player.minimized .player-card { width: auto; padding: 10px 16px; border-radius: 99px; }
+#zaandam-yt-hidden { position: absolute; width: 320px; height: 180px; left:-9999px; top:-9999px; opacity:0.01; pointer-events:none; overflow:hidden; }
+</style>
+
+<div id="zaandam-yt-player" class="minimized">
+  <div class="player-card">
+    <div class="player-header">
+      <div class="player-title"><span class="dot"></span> ZAANDAM YT RADIO</div>
+      <button class="minimize-btn" id="zyt-min">♪</button>
+    </div>
+    <div class="yt-thumb-wrap" id="zyt-thumb-wrap">
+      <img id="zyt-thumb" src="https://i.ytimg.com/vi/jfKfPfyJRdk/hqdefault.jpg" alt="">
+      <div class="play-overlay"><div class="big-play" id="zyt-big-play">▶</div></div>
+    </div>
+    <div class="track-info">
+      <div class="track-name" id="zyt-name">Lofi Hip Hop Radio</div>
+      <div class="track-artist" id="zyt-artist">YouTube • Zaandam RP</div>
+    </div>
+    <div class="controls">
+      <button class="ctrl-btn" id="zyt-prev">⏮</button>
+      <button class="ctrl-btn play" id="zyt-play">▶</button>
+      <button class="ctrl-btn" id="zyt-next">⏭</button>
+      <div style="flex:1"></div>
+      <button class="ctrl-btn" id="zyt-vol-btn">🔊</button>
+    </div>
+    <div class="progress-wrap">
+      <span class="time" id="zyt-cur">0:00</span>
+      <input type="range" id="zyt-progress" min="0" max="100" value="0">
+      <span class="time" id="zyt-dur">0:00</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <input type="range" id="zyt-vol" min="0" max="100" value="80" style="flex:1">
+      <label style="font-size:10px; color:rgba(255,255,255,0.6); display:flex; align-items:center; gap:4px; cursor:pointer;">
+        <input type="checkbox" id="zyt-autoplay" checked> Autoplay
+      </label>
+    </div>
+    <div class="playlist" id="zyt-playlist"></div>
+    <div class="add-yt">
+      <input id="zyt-input" placeholder="Plak YouTube link (youtube.com/watch?v=... )">
+      <button id="zyt-add">+ ADD</button>
+    </div>
+    <div style="font-size:9px; color:rgba(255,255,255,0.35); margin-top:6px; text-align:center;">Werkt met alle YouTube video's / livestreams / lofi radio</div>
+  </div>
+</div>
+
+<div id="zaandam-yt-hidden"><div id="yt-player-div"></div></div>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+(function(){
+  const ytTracks = [
+    { id: "jfKfPfyJRdk", title: "Lofi Hip Hop Radio", artist: "Chill Beats • 24/7" },
+    { id: "5qap5aO4i9A", title: "Lofi Girl - Chill", artist: "Lofi Girl • Live" },
+    { id: "lTRiuFIWV54", title: "Phonk Drift Mix", artist: "Zaandam Nights" },
+    { id: "DWcJFNfaw9c", title: "Dutch Drill / Trap Mix", artist: "RP Vibes" },
+    { id: "S_MOd40zlYU", title: "Night Drive Phonk", artist: "Midnight Streets" },
+  ];
+
+  let current = 0;
+  let ytPlayer = null;
+  let isReady = false;
+  let progressTimer = null;
+  let audioUnlocked = false;
+
+  const thumb = document.getElementById('zyt-thumb');
+  const nameEl = document.getElementById('zyt-name');
+  const artistEl = document.getElementById('zyt-artist');
+  const playBtn = document.getElementById('zyt-play');
+  const bigPlay = document.getElementById('zyt-big-play');
+  const prevBtn = document.getElementById('zyt-prev');
+  const nextBtn = document.getElementById('zyt-next');
+  const curEl = document.getElementById('zyt-cur');
+  const durEl = document.getElementById('zyt-dur');
+  const progress = document.getElementById('zyt-progress');
+  const vol = document.getElementById('zyt-vol');
+  const volBtn = document.getElementById('zyt-vol-btn');
+  const playlistEl = document.getElementById('zyt-playlist');
+  const wrap = document.getElementById('zaandam-yt-player');
+  const minBtn = document.getElementById('zyt-min');
+  const input = document.getElementById('zyt-input');
+  const addBtn = document.getElementById('zyt-add');
+  const autoplayCheck = document.getElementById('zyt-autoplay');
+
+  function fmt(s){ if(!isFinite(s) || isNaN(s)) return "0:00"; const m=Math.floor(s/60); const sec=Math.floor(s%60).toString().padStart(2,"0"); return m+":"+sec; }
+  function getThumb(id){ return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`; }
+
+  function render(){
+    playlistEl.innerHTML = "";
+    ytTracks.forEach((t,i)=>{
+      const div = document.createElement('div');
+      div.className = "playlist-item"+(i===current?" active":"");
+      div.innerHTML = `<img src="${getThumb(t.id)}" onerror="this.src='https://via.placeholder.com/42x28/ff0000/fff?text=YT'"><div><div class="pi-title">${t.title}</div><div class="pi-artist">${t.artist}</div></div>`;
+      div.onclick = ()=>{ current=i; loadTrack(true); };
+      playlistEl.appendChild(div);
+    });
+    const ct = ytTracks[current];
+    if(ct){
+      thumb.src = getThumb(ct.id);
+      nameEl.textContent = ct.title;
+      artistEl.textContent = ct.artist;
+    }
+  }
+
+  function unlockAudio(){
+    if(!audioUnlocked && ytPlayer){
+      try {
+        ytPlayer.unMute();
+        ytPlayer.setVolume(vol.value);
+        audioUnlocked = true;
+        volBtn.textContent = "🔊";
+      } catch(e){}
+    }
+  }
+
+  window.onYouTubeIframeAPIReady = function(){
+    ytPlayer = new YT.Player('yt-player-div', {
+      height: '180',
+      width: '320',
+      videoId: ytTracks[current].id,
+      playerVars: {
+        autoplay: 0,
+        controls: 0,
+        disablekb: 1,
+        fs: 0,
+        modestbranding: 1,
+        playsinline: 1,
+        rel: 0,
+        iv_load_policy: 3,
+        enablejsapi: 1,
+        origin: window.location.origin
+      },
+      events: {
+        onReady: ()=>{
+          isReady = true;
+          ytPlayer.setVolume(vol.value);
+          render();
+          startProgressLoop();
+          console.log("YT Ready - audio unlocked on next click");
+        },
+        onStateChange: (e)=>{
+          if(e.data === YT.PlayerState.PLAYING){
+            playBtn.textContent = "⏸";
+            bigPlay.textContent = "⏸";
+            // Zodra hij speelt, zorg dat hij UNMUTED is
+            if(!ytPlayer.isMuted()){
+              volBtn.textContent = "🔊";
+            }
+          } else {
+            playBtn.textContent = "▶";
+            bigPlay.textContent = "▶";
+            if(e.data === YT.PlayerState.ENDED){
+              if(autoplayCheck.checked){ next(); }
+            }
+          }
+        },
+        onError: (e)=>{
+          console.warn("YT Error", e.data);
+          // 150,101 = embedding disabled - skip naar volgende
+          if(e.data === 150 || e.data === 101){
+            nameEl.textContent = "Video kan niet embedden - volgende...";
+            setTimeout(next, 1500);
+          }
+        }
+      }
+    });
+  };
+
+  function loadTrack(shouldPlay){
+    if(!isReady || !ytPlayer) return;
+    const id = ytTracks[current].id;
+    render();
+    wrap.classList.remove('minimized');
+    minBtn.textContent = "—";
+    try {
+      if(shouldPlay){
+        // Dit is de KEY FIX: load + unMute + play in één user gesture context
+        ytPlayer.loadVideoById({ videoId: id, suggestedQuality: 'small' });
+        unlockAudio();
+        ytPlayer.unMute();
+        ytPlayer.setVolume(vol.value);
+        // Kleine delay om te zorgen dat load klaar is
+        setTimeout(()=>{ try{ ytPlayer.playVideo(); ytPlayer.unMute(); }catch(e){} }, 100);
+      } else {
+        ytPlayer.cueVideoById(id);
+      }
+    } catch(e){ console.error(e); }
+  }
+
+  function playPause(){
+    if(!isReady || !ytPlayer) return;
+    unlockAudio();
+    ytPlayer.unMute();
+    ytPlayer.setVolume(vol.value);
+    const state = ytPlayer.getPlayerState();
+    if(state === YT.PlayerState.PLAYING){
+      ytPlayer.pauseVideo();
+    } else {
+      ytPlayer.playVideo();
+      wrap.classList.remove('minimized');
+      minBtn.textContent = "—";
+    }
+  }
+
+  function next(){ current = (current+1)%ytTracks.length; loadTrack(true); }
+  function prev(){ current = (current-1+ytTracks.length)%ytTracks.length; loadTrack(true); }
+
+  playBtn.onclick = playPause;
+  bigPlay.onclick = playPause;
+  document.getElementById('zyt-thumb-wrap').onclick = playPause;
+  nextBtn.onclick = next;
+  prevBtn.onclick = prev;
+
+  vol.addEventListener('input', ()=>{
+    if(ytPlayer){
+      ytPlayer.setVolume(vol.value);
+      if(vol.value > 0 && ytPlayer.isMuted()){ ytPlayer.unMute(); volBtn.textContent="🔊"; }
+    }
+  });
+  volBtn.onclick = ()=>{
+    if(!ytPlayer) return;
+    unlockAudio();
+    if(ytPlayer.isMuted()){
+      ytPlayer.unMute(); volBtn.textContent="🔊";
+      ytPlayer.setVolume(vol.value);
+    } else {
+      ytPlayer.mute(); volBtn.textContent="🔇";
+    }
+  };
+
+  progress.addEventListener('input', ()=>{
+    if(!ytPlayer || !ytPlayer.getDuration) return;
+    const dur = ytPlayer.getDuration();
+    if(dur) ytPlayer.seekTo((progress.value/100)*dur, true);
+  });
+
+  function startProgressLoop(){
+    clearInterval(progressTimer);
+    progressTimer = setInterval(()=>{
+      if(!ytPlayer || !ytPlayer.getCurrentTime || !isReady) return;
+      try {
+        const cur = ytPlayer.getCurrentTime() || 0;
+        const dur = ytPlayer.getDuration() || 0;
+        curEl.textContent = fmt(cur);
+        durEl.textContent = fmt(dur);
+        progress.value = dur ? (cur/dur)*100 : 0;
+      } catch(e){}
+    }, 500);
+  }
+
+  minBtn.onclick = ()=>{
+    wrap.classList.toggle('minimized');
+    minBtn.textContent = wrap.classList.contains('minimized') ? "♪" : "—";
+  };
+
+  function extractId(url){
+    url = url.trim();
+    try {
+      const u = new URL(url);
+      if(u.hostname.includes('youtu.be')) return u.pathname.slice(1).split('?')[0].split('/')[0];
+      if(u.searchParams.get('v')) return u.searchParams.get('v');
+      const m = url.match(/\/shorts\/([^?\/]+)/);
+      if(m) return m[1];
+      const m2 = url.match(/\/live\/([^?\/]+)/);
+      if(m2) return m2[1];
+      const m3 = url.match(/\/embed\/([^?\/]+)/);
+      if(m3) return m3[1];
+    } catch(e){}
+    if(/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
+    return null;
+  }
+
+  function addFromInput(){
+    const val = input.value.trim();
+    if(!val) return;
+    const id = extractId(val);
+    if(!id){ alert("Ongeldige YouTube link. Plak bijv: https://www.youtube.com/watch?v=jfKfPfyJRdk"); return; }
+    
+    // Direct toevoegen en meteen spelen - dit IS een user gesture dus geluid mag
+    ytTracks.push({ id, title: "Laden... "+id, artist: "Eigen toegevoegd" });
+    current = ytTracks.length - 1;
+    input.value = "";
+    
+    // FIX: meteen afspelen met geluid
+    if(isReady && ytPlayer){
+      unlockAudio();
+      ytPlayer.unMute();
+      ytPlayer.setVolume(vol.value);
+      ytPlayer.loadVideoById({ videoId: id });
+      setTimeout(()=>{ 
+        try{ ytPlayer.unMute(); ytPlayer.playVideo(); }catch(e){}
+      }, 200);
+    }
+    render();
+    wrap.classList.remove('minimized');
+    minBtn.textContent = "—";
+
+    // Probeer echte titel op te halen
+    fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${id}`)
+      .then(r=>r.json()).then(d=>{
+        if(d.title){
+          const idx = ytTracks.findIndex(t=>t.id===id);
+          if(idx>=0){
+            ytTracks[idx].title = d.title;
+            if(idx===current) nameEl.textContent = d.title;
+            render();
+          }
+        }
+      }).catch(()=>{});
+  }
+  
+  addBtn.onclick = addFromInput;
+  input.addEventListener('keydown', (e)=>{ if(e.key==="Enter") addFromInput(); });
+
+  // Eerste click anywhere unlockt audio voor autoplay
+  function firstInteraction(){
+    unlockAudio();
+    if(isReady && ytPlayer && autoplayCheck.checked){
+      try{ ytPlayer.unMute(); ytPlayer.playVideo(); }catch(e){}
+    }
+    document.removeEventListener('click', firstInteraction);
+    document.removeEventListener('touchstart', firstInteraction);
+  }
+  document.addEventListener('click', firstInteraction);
+  document.addEventListener('touchstart', firstInteraction);
+
+  render();
+  
+  // Fallback als API al geladen is
+  if(window.YT && window.YT.Player && !isReady){
+    window.onYouTubeIframeAPIReady();
+  }
+})();
+</script>
+</body>
+</html>
